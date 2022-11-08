@@ -31,6 +31,26 @@ const client = new MongoClient(uri, { useNewUrlParser: true, useUnifiedTopology:
 
 async function run() {
 
+    const serviceCollections = client.db("houseChef").collection("services")
+
+
+    //get all services
+    app.get('/services', async (req, res) => {
+
+        const show = parseInt(req.query.show);
+        const query = {};
+        const cursor = serviceCollections.find(query)
+        if (req.query) {
+            const result = await cursor.limit(show).toArray()
+            res.send(result)
+        } else {
+            const result = await cursor.toArray()
+            res.send(result)
+        }
+    })
+
+
+
 }
 
 run().catch(error => console.log(error))
