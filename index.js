@@ -71,9 +71,13 @@ async function run() {
 
     //get review
 
-    app.get('/review', async (req, res) => {
+    app.get('/reviews', async (req, res) => {
         const query = {}
-        const cursor = reviewCollections
+        const cursor = reviewCollections.find(query)
+
+        const result = await cursor.toArray()
+
+        res.send(result)
 
     })
 
