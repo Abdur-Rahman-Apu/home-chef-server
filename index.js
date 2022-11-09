@@ -22,7 +22,7 @@ app.get('/', (req, res) => {
 
 
 
-const { MongoClient, ServerApiVersion } = require('mongodb');
+const { MongoClient, ServerApiVersion, ObjectId } = require('mongodb');
 
 
 const uri = `mongodb+srv://${process.env.DB_USER}:${process.env.DB_PASSWORD}@cluster0.7kbtzra.mongodb.net/?retryWrites=true&w=majority`;
@@ -32,6 +32,8 @@ const client = new MongoClient(uri, { useNewUrlParser: true, useUnifiedTopology:
 async function run() {
 
     const serviceCollections = client.db("houseChef").collection("services")
+
+    const reviewCollections = client.db("houseChef").collection("reviews")
 
 
     //get all services
@@ -47,6 +49,32 @@ async function run() {
             const result = await cursor.toArray()
             res.send(result)
         }
+    })
+
+    //get specific item
+
+    app.get('/service/:id', async (req, res) => {
+        const id = req.params.id;
+        const query = { _id: ObjectId(id) }
+        const result = await serviceCollections.findOne(query)
+        res.send(result)
+
+    })
+
+
+    // add review 
+    app.post('/reviews', async (req, res) => {
+        const review = req.body;
+        const result = await reviewCollections.insertOne(review);
+        res.send(result)
+    })
+
+    //get review
+
+    app.get('/review', async (req, res) => {
+        const query = {}
+        const cursor = reviewCollections
+
     })
 
 
