@@ -5,7 +5,11 @@ const cors = require('cors');
 
 const port = process.env.PORT || 5000;
 
+
+var jwt = require('jsonwebtoken');
+
 require('dotenv').config()
+
 const app = express()
 
 
@@ -29,11 +33,42 @@ const uri = `mongodb+srv://${process.env.DB_USER}:${process.env.DB_PASSWORD}@clu
 
 const client = new MongoClient(uri, { useNewUrlParser: true, useUnifiedTopology: true, serverApi: ServerApiVersion.v1 });
 
+
+function verifyJWT(req, res, next) {
+
+    const authHeader = req.headers.authorization;
+    console.log(authHeader);
+
+    if (!authHeader) {
+        return res.status(401).send({ message: 'Unauthorized access' })
+    }
+
+    const token = authHeader.split(' ')[1]
+    console.log(token);
+
+    jwt.verify(token, process.env.ACCESS_TOKEN_SECRET, function (err, decoded) {
+        if (err) {
+            return res.status(401).send({ message: 'Unauthorized access' })
+        }
+        req.decoded = decoded;
+        next();
+    })
+
+
+}
+
 async function run() {
 
     const serviceCollections = client.db("houseChef").collection("services")
 
     const reviewCollections = client.db("houseChef").collection("reviews")
+
+    //jwt 
+    app.post('/jwt', (req, res) => {
+        const user = req.body;
+        const token = jwt.sign(user, process.env.ACCESS_TOKEN_SECRET, { expiresIn: '1h' })
+        res.send({ token })
+    })
 
 
     //get all services
@@ -41,7 +76,7 @@ async function run() {
 
         const show = parseInt(req.query.show);
         const query = {};
-        const cursor = serviceCollections.find(query)
+        const cursor = serviceCollections.find(query).sort({ serviceId: -1 })
         if (req.query) {
             const result = await cursor.limit(show).toArray()
             res.send(result)
@@ -81,9 +116,18 @@ async function run() {
 
     //get review
 
-    app.get('/reviews', async (req, res) => {
+    app.get('/reviews', verifyJWT, async (req, res) => {
+
+
+        const decoded = req.decoded;
+
+        if (decoded.email !== req.query.email) {
+
+            res.status(403).send({ message: 'unauthorized access' })
+        }
+
         const query = {}
-        const cursor = reviewCollections.find(query)
+        const cursor = reviewCollections.find(query).sort({ addedTime: -1 })
 
         const result = await cursor.toArray()
 
@@ -131,6 +175,8 @@ async function run() {
         const result = await reviewCollections.deleteOne(search);
         res.send(result)
     })
+
+
 
 
 
