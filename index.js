@@ -37,14 +37,14 @@ const client = new MongoClient(uri, { useNewUrlParser: true, useUnifiedTopology:
 function verifyJWT(req, res, next) {
 
     const authHeader = req.headers.authorization;
-    console.log(authHeader);
+    console.log("header", authHeader);
 
     if (!authHeader) {
         return res.status(401).send({ message: 'Unauthorized access' })
     }
 
     const token = authHeader.split(' ')[1]
-    console.log(token);
+    console.log("token", token);
 
     jwt.verify(token, process.env.ACCESS_TOKEN_SECRET, function (err, decoded) {
         if (err) {
@@ -66,7 +66,7 @@ async function run() {
     //jwt 
     app.post('/jwt', (req, res) => {
         const user = req.body;
-        const token = jwt.sign(user, process.env.ACCESS_TOKEN_SECRET, { expiresIn: '1h' })
+        const token = jwt.sign(user, process.env.ACCESS_TOKEN_SECRET, { expiresIn: '24h' })
         res.send({ token })
     })
 
@@ -89,9 +89,9 @@ async function run() {
     //get specific item
 
     app.get('/service/:id', async (req, res) => {
-        const id = req.params.id;
-        console.log(id);
-        const query = { _id: ObjectId(id) }
+        const id = parseInt(req.params.id);
+        console.log("service id: ", id);
+        const query = { serviceId: id }
         const result = await serviceCollections.findOne(query)
         res.send(result)
 
@@ -100,7 +100,7 @@ async function run() {
     // insert 
     app.post('/services', async (req, res) => {
         const data = req.body;
-        console.log(data);
+        console.log("services", data);
         const result = await serviceCollections.insertOne(data)
         res.send(result)
     })
@@ -109,25 +109,30 @@ async function run() {
     // add review 
     app.post('/reviews', async (req, res) => {
         const review = req.body;
-
         const result = await reviewCollections.insertOne(review);
         res.send(result)
     })
 
     //get review
 
-    app.get('/reviews', verifyJWT, async (req, res) => {
+    app.get('/reviews', async (req, res) => {
 
 
-        const decoded = req.decoded;
+        // const decoded = req.decoded;
 
-        if (decoded.email !== req.query.email) {
+        // console.log("email", decoded.email);
 
-            res.status(403).send({ message: 'unauthorized access' })
+        // if (decoded.email !== req.query.email) {
+
+        //     res.status(403).send({ message: 'unauthorized access' })
+        // }
+
+        let query = {}
+
+        if (req.query.email) {
+            query = { email: req.query.email }
         }
-
-        const query = {}
-        const cursor = reviewCollections.find(query).sort({ addedTime: -1 })
+        const cursor = reviewCollections.find(query)
 
         const result = await cursor.toArray()
 
@@ -137,23 +142,60 @@ async function run() {
 
 
     app.get("/reviews/:id", async (req, res) => {
-        const id = req.params.id;
+        // const decoded = req.decoded;
 
-        const query = { _id: ObjectId(id) }
+        // console.log("email", decoded.email);
 
-        const result = await reviewCollections.findOne(query);
+        // if (decoded.email !== req.query.email) {
+
+        //     res.status(403).send({ message: 'unauthorized access' })
+        // }
+        const id = parseInt(req.params.id);
+        console.log("id", id);
+        const query = { serviceId: id }
+        console.log("review id query:", query);
+        const cursor = reviewCollections.find(query).sort({ addedTime: -1 });
+        const result = await cursor.toArray()
 
         res.send(result);
     })
 
-    //update
-    app.put('/reviews/:id', async (req, res) => {
+    app.get("/changeReview/:id", async (req, res) => {
+
+        const id = req.params.id;
+        console.log("id", id);
+        const query = { _id: ObjectId(id) }
+        const result = await reviewCollections.findOne(query)
+        res.send(result);
+    })
+
+    app.put("/changeReview/:id", async (req, res) => {
+
         const id = req.params.id;
         console.log(id);
         const message = req.body.message;
         console.log(message);
-        const options = { upsert: true };
-        const search = { serviceId: id }
+        console.log("id", id);
+        const query = { _id: ObjectId(id) }
+        const updateDoc = {
+            $set: {
+                message: message
+            },
+        };
+        const result = await reviewCollections.updateOne(query, updateDoc)
+        res.send(result);
+    })
+
+
+
+    //update
+    app.put('/reviews/:id', async (req, res) => {
+        const id = req.params.id;
+        console.log("review id", id);
+        const message = req.body.message;
+        console.log("update message", message);
+
+        const search = { _id: ObjectId(id) }
 
         const updateDoc = {
             $set: {
@@ -161,7 +203,7 @@ async function run() {
             }
         }
 
-        const result = await reviewCollections.updateOne(search, updateDoc, options);
+        const result = await reviewCollections.updateOne(search, updateDoc);
         res.send(result)
 
     })
@@ -171,7 +213,8 @@ async function run() {
 
     app.delete('/reviews/:id', async (req, res) => {
         const id = req.params.id;
-        const search = { serviceId: id }
+        console.log("delete", id);
+        const search = { _id: ObjectId(id) }
         const result = await reviewCollections.deleteOne(search);
         res.send(result)
     })
