@@ -115,17 +115,17 @@ async function run() {
 
     //get review
 
-    app.get('/reviews', async (req, res) => {
+    app.get('/reviews', verifyJWT, async (req, res) => {
 
 
-        // const decoded = req.decoded;
+        const decoded = req.decoded;
 
-        // console.log("email", decoded.email);
+        console.log("email", decoded.email);
 
-        // if (decoded.email !== req.query.email) {
+        if (decoded.email !== req.query.email) {
 
-        //     res.status(403).send({ message: 'unauthorized access' })
-        // }
+            res.status(403).send({ message: 'unauthorized access' })
+        }
 
         let query = {}
 
@@ -142,14 +142,7 @@ async function run() {
 
 
     app.get("/reviews/:id", async (req, res) => {
-        // const decoded = req.decoded;
 
-        // console.log("email", decoded.email);
-
-        // if (decoded.email !== req.query.email) {
-
-        //     res.status(403).send({ message: 'unauthorized access' })
-        // }
         const id = parseInt(req.params.id);
         console.log("id", id);
         const query = { serviceId: id }
