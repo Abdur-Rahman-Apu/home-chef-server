@@ -55,6 +55,7 @@ async function run() {
 
     app.get('/service/:id', async (req, res) => {
         const id = req.params.id;
+        console.log(id);
         const query = { _id: ObjectId(id) }
         const result = await serviceCollections.findOne(query)
         res.send(result)
@@ -72,7 +73,6 @@ async function run() {
     //get review
 
     app.get('/reviews', async (req, res) => {
-        console.log(req.body);
         const query = {}
         const cursor = reviewCollections.find(query)
 
@@ -80,6 +80,47 @@ async function run() {
 
         res.send(result)
 
+    })
+
+
+    app.get("/reviews/:id", async (req, res) => {
+        const id = req.params.id;
+
+        const query = { _id: ObjectId(id) }
+
+        const result = await reviewCollections.findOne(query);
+
+        res.send(result);
+    })
+
+    //update
+    app.put('/reviews/:id', async (req, res) => {
+        const id = req.params.id;
+        console.log(id);
+        const message = req.body.message;
+        console.log(message);
+        const options = { upsert: true };
+        const search = { serviceId: id }
+
+        const updateDoc = {
+            $set: {
+                message: message
+            }
+        }
+
+        const result = await reviewCollections.updateOne(search, updateDoc, options);
+        res.send(result)
+
+    })
+
+
+    // delete a item
+
+    app.delete('/reviews/:id', async (req, res) => {
+        const id = req.params.id;
+        const search = { serviceId: id }
+        const result = await reviewCollections.deleteOne(search);
+        res.send(result)
     })
 
 
